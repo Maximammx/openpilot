@@ -5,6 +5,23 @@
 #include "selfdrive/hardware/hw.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 
+class latkpv : public AbstractControl {
+  Q_OBJECT
+
+public:
+  latpiv();
+
+private:
+  QPushButton btndigit;
+  QPushButton btnminus;
+  QPushButton btnplus;
+  QLabel label;
+  Params params;
+  float digit = 0.01;
+  
+  void refresh();
+};
+
 // SSH enable toggle
 class SshToggle : public ToggleControl {
   Q_OBJECT

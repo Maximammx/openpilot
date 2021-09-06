@@ -72,9 +72,6 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
     auto str = QString::fromStdString(params.get("LatKpv"));
     int value = str.toInt();
     value = value - digit;
-    if (value <= 0.1) {
-      value = 0.1;
-    }
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
     refresh();

@@ -9,7 +9,7 @@ class latkpv : public AbstractControl {
   Q_OBJECT
 
 public:
-  latpiv();
+  latkpv();
 
 private:
   QPushButton btndigit;

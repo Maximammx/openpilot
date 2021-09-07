@@ -12,14 +12,14 @@ public:
   latkpv();
 
 private:
-  QPushButton btndigit;
-  QPushButton btnminus;
-  QPushButton btnplus;
-  QLabel label;
+  QPushButton pbtndigit;
+  QPushButton pbtnminus;
+  QPushButton pbtnplus;
+  QLabel plabel;
   Params params;
-  float digit = 0.01;
+  float pdigit = 0.01;
   
-  void refresh();
+  void prefresh();
 };
 
 class latkiv : public AbstractControl {
@@ -29,14 +29,14 @@ public:
   latkiv();
 
 private:
-  QPushButton btndigit;
-  QPushButton btnminus;
-  QPushButton btnplus;
-  QLabel label;
+  QPushButton ibtndigit;
+  QPushButton ibtnminus;
+  QPushButton ibtnplus;
+  QLabel ilabel;
   Params params;
-  float digit = 0.01;
+  float idigit = 0.01;
   
-  void refresh();
+  void irefresh();
 };
 
 // SSH enable toggle

@@ -4,7 +4,7 @@
 #include "selfdrive/ui/qt/api.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 
-latkiv::latkiv() : AbstractControl("Lat Kpv", "Description here", "../assets/offroad/icon_shell.png") {
+latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/offroad/icon_shell.png") {
 
   label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
   label.setStyleSheet("color: #e0e879");

@@ -4,6 +4,93 @@
 #include "selfdrive/ui/qt/api.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 
+latkiv::latkiv() : AbstractControl("Lat Kpv", "Description here", "../assets/offroad/icon_shell.png") {
+
+  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  label.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&label);
+
+  btndigit.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  btnminus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  btnplus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  btndigit.setFixedSize(100, 100);
+  btnminus.setFixedSize(100, 100);
+  btnplus.setFixedSize(100, 100);
+  hlayout->addWidget(&btndigit);
+  hlayout->addWidget(&btnminus);
+  hlayout->addWidget(&btnplus);
+  btndigit.setText("0.01");
+  btnminus.setText("-");
+  btnplus.setText("+");
+
+  QObject::connect(&btndigit, &QPushButton::clicked, [=]() {
+    digit = digit * 10;
+    if (digit >= 11 ) {
+      digit = 0.01;
+    }
+    QString level = QString::number(digit);
+    btndigit.setText(level);
+  });
+
+  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKiv"));
+    int value = str.toInt();
+    value = value - digit;
+    if (value <= 0.1) {
+      value = 0.1;
+    }
+    QString values = QString::number(value);
+    params.put("LatKiv", values.toStdString());
+    refresh();
+  });
+  
+  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKiv"));
+    int value = str.toInt();
+    value = value + digit;
+    QString values = QString::number(value);
+    params.put("LatKiv", values.toStdString());
+    refresh();
+  });
+  refresh();
+}
+
 latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/offroad/icon_shell.png") {
 
   label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
@@ -90,6 +177,14 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
 
 void latkpv::refresh() {
   auto strs = QString::fromStdString(params.get("LatKpv"));
+  int valuei = strs.toInt();
+  float valuef = valuei * 0.0001;
+  QString valuefs = QString::number(valuef);
+  label.setText(QString::fromStdString(valuefs.toStdString()));
+}
+
+void latkiv::refresh() {
+  auto strs = QString::fromStdString(params.get("LatKiv"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.0001;
   QString valuefs = QString::number(valuef);

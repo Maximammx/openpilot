@@ -37,6 +37,7 @@ def manager_init():
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
     ("LatKpv", "0.28")
+    ("LatKiv", "0.08")
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))

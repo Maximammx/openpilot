@@ -22,6 +22,23 @@ private:
   void refresh();
 };
 
+class latkiv : public AbstractControl {
+  Q_OBJECT
+
+public:
+  latkiv();
+
+private:
+  QPushButton btndigit;
+  QPushButton btnminus;
+  QPushButton btnplus;
+  QLabel label;
+  Params params;
+  float digit = 0.01;
+  
+  void refresh();
+};
+
 // SSH enable toggle
 class SshToggle : public ToggleControl {
   Q_OBJECT

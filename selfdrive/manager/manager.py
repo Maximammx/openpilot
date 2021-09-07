@@ -36,7 +36,7 @@ def manager_init():
     ("CompletedTrainingVersion", "0"),
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
-    ("LatKpv", "0.28")
+    ("LatKpv", "0.28"),
     ("LatKiv", "0.08")
   ]
   if not PC:

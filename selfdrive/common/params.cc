@@ -1,214 +1,332 @@
-#!/usr/bin/env python3
-import datetime
-import os
-import signal
-import subprocess
-import sys
-import traceback
+#include "selfdrive/common/params.h"
 
-import cereal.messaging as messaging
-import selfdrive.crash as crash
-from common.basedir import BASEDIR
-from common.params import Params, ParamKeyType
-from common.text_window import TextWindow
-from selfdrive.boardd.set_time import set_time
-from selfdrive.hardware import HARDWARE, PC
-from selfdrive.manager.helpers import unblock_stdout
-from selfdrive.manager.process import ensure_running
-from selfdrive.manager.process_config import managed_processes
-from selfdrive.athena.registration import register, UNREGISTERED_DONGLE_ID
-from selfdrive.swaglog import cloudlog, add_file_handler
-from selfdrive.version import dirty, get_git_commit, version, origin, branch, commit, \
-                              terms_version, training_version, comma_remote, \
-                              get_git_branch, get_git_remote
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif  // _GNU_SOURCE
 
-sys.path.append(os.path.join(BASEDIR, "pyextra"))
+#include <dirent.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-def manager_init():
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <mutex>
+#include <unordered_map>
 
-  # update system time from panda
-  set_time(cloudlog)
+#include "selfdrive/common/swaglog.h"
+#include "selfdrive/common/util.h"
+#include "selfdrive/hardware/hw.h"
 
-  params = Params()
-  params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
+namespace {
 
-  default_params = [
-    ("CompletedTrainingVersion", "0"),
-    ("HasAcceptedTerms", "0"),
-    ("OpenpilotEnabledToggle", "1"),
-    ("LatKpv", "0.28")
-    ("LatKiv", "0.08")
-  ]
-  if not PC:
-    default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
+volatile sig_atomic_t params_do_exit = 0;
+void params_sig_handler(int signal) {
+  params_do_exit = 1;
+}
 
-  if params.get_bool("RecordFrontLock"):
-    params.put_bool("RecordFront", True)
+int fsync_dir(const char* path) {
+  int fd = HANDLE_EINTR(open(path, O_RDONLY, 0755));
+  if (fd < 0) {
+    return -1;
+  }
 
-  # set unset params
-  for k, v in default_params:
-    if params.get(k) is None:
-      params.put(k, v)
+  int result = fsync(fd);
+  int result_close = close(fd);
+  if (result_close < 0) {
+    result = result_close;
+  }
+  return result;
+}
 
-  # is this dashcam?
-  if os.getenv("PASSIVE") is not None:
-    params.put_bool("Passive", bool(int(os.getenv("PASSIVE"))))
+int mkdir_p(std::string path) {
+  char * _path = (char *)path.c_str();
 
-  if params.get("Passive") is None:
-    raise Exception("Passive must be set to continue")
+  for (char *p = _path + 1; *p; p++) {
+    if (*p == '/') {
+      *p = '\0'; // Temporarily truncate
+      if (mkdir(_path, 0775) != 0) {
+        if (errno != EEXIST) return -1;
+      }
+      *p = '/';
+    }
+  }
+  if (mkdir(_path, 0775) != 0) {
+    if (errno != EEXIST) return -1;
+  }
+  return 0;
+}
 
-  # Create folders needed for msgq
-  try:
-    os.mkdir("/dev/shm")
-  except FileExistsError:
-    pass
-  except PermissionError:
-    print("WARNING: failed to make /dev/shm")
+bool create_params_path(const std::string &param_path, const std::string &key_path) {
+  // Make sure params path exists
+  if (!util::file_exists(param_path) && mkdir_p(param_path) != 0) {
+    return false;
+  }
 
-  # set version params
-  params.put("Version", version)
-  params.put("TermsVersion", terms_version)
-  params.put("TrainingVersion", training_version)
-  params.put("GitCommit", get_git_commit(default=""))
-  params.put("GitBranch", get_git_branch(default=""))
-  params.put("GitRemote", get_git_remote(default=""))
+  // See if the symlink exists, otherwise create it
+  if (!util::file_exists(key_path)) {
+    // 1) Create temp folder
+    // 2) Set permissions
+    // 3) Symlink it to temp link
+    // 4) Move symlink to <params>/d
 
-  # set dongle id
-  reg_res = register(show_spinner=True)
-  if reg_res:
-    dongle_id = reg_res
-  else:
-    serial = params.get("HardwareSerial")
-    raise Exception(f"Registration failed for device {serial}")
-  os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
+    std::string tmp_path = param_path + "/.tmp_XXXXXX";
+    // this should be OK since mkdtemp just replaces characters in place
+    char *tmp_dir = mkdtemp((char *)tmp_path.c_str());
+    if (tmp_dir == NULL) {
+      return false;
+    }
 
-  if not dirty:
-    os.environ['CLEAN'] = '1'
+    std::string link_path = std::string(tmp_dir) + ".link";
+    if (symlink(tmp_dir, link_path.c_str()) != 0) {
+      return false;
+    }
 
-  cloudlog.bind_global(dongle_id=dongle_id, version=version, dirty=dirty,
-                       device=HARDWARE.get_device_type())
+    // don't return false if it has been created by other
+    if (rename(link_path.c_str(), key_path.c_str()) != 0 && errno != EEXIST) {
+      return false;
+    }
+  }
 
-  if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
-    crash.init()
-  crash.bind_user(id=dongle_id)
-  crash.bind_extra(dirty=dirty, origin=origin, branch=branch, commit=commit,
-                   device=HARDWARE.get_device_type())
+  return true;
+}
 
+void ensure_params_path(const std::string &params_path) {
+  if (!create_params_path(params_path, params_path + "/d")) {
+    throw std::runtime_error(util::string_format("Failed to ensure params path, errno=%d", errno));
+  }
+}
 
-def manager_prepare():
-  for p in managed_processes.values():
-    p.prepare()
+class FileLock {
+ public:
+  FileLock(const std::string& file_name, int op) : fn_(file_name), op_(op) {}
 
+  void lock() {
+    fd_ = HANDLE_EINTR(open(fn_.c_str(), O_CREAT, 0775));
+    if (fd_ < 0) {
+      LOGE("Failed to open lock file %s, errno=%d", fn_.c_str(), errno);
+      return;
+    }
+    if (HANDLE_EINTR(flock(fd_, op_)) < 0) {
+      LOGE("Failed to lock file %s, errno=%d", fn_.c_str(), errno);
+    }
+  }
 
-def manager_cleanup():
-  for p in managed_processes.values():
-    p.stop()
+  void unlock() { close(fd_); }
 
-  cloudlog.info("everything is dead")
+private:
+  int fd_ = -1, op_;
+  std::string fn_;
+};
 
+std::unordered_map<std::string, uint32_t> keys = {
+    {"AccessToken", CLEAR_ON_MANAGER_START | DONT_LOG},
+    {"LatKpv", PERSISTENT},
+    {"LatKiv", PERSISTENT},
+    {"ApiCache_DriveStats", PERSISTENT},
+    {"ApiCache_Device", PERSISTENT},
+    {"ApiCache_Owner", PERSISTENT},
+    {"ApiCache_NavDestinations", PERSISTENT},
+    {"AthenadPid", PERSISTENT},
+    {"CalibrationParams", PERSISTENT},
+    {"CarBatteryCapacity", PERSISTENT},
+    {"CarParams", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT | CLEAR_ON_IGNITION_ON},
+    {"CarParamsCache", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"CarVin", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT | CLEAR_ON_IGNITION_ON},
+    {"CommunityFeaturesToggle", PERSISTENT},
+    {"ControlsReady", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT | CLEAR_ON_IGNITION_ON},
+    {"CurrentRoute", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON},
+    {"DisableRadar", PERSISTENT}, // WARNING: THIS DISABLES AEB
+    {"EndToEndToggle", PERSISTENT},
+    {"CompletedTrainingVersion", PERSISTENT},
+    {"DisablePowerDown", PERSISTENT},
+    {"DisableUpdates", PERSISTENT},
+    {"EnableWideCamera", CLEAR_ON_MANAGER_START},
+    {"DoUninstall", CLEAR_ON_MANAGER_START},
+    {"DongleId", PERSISTENT},
+    {"GitDiff", PERSISTENT},
+    {"GitBranch", PERSISTENT},
+    {"GitCommit", PERSISTENT},
+    {"GitRemote", PERSISTENT},
+    {"GithubSshKeys", PERSISTENT},
+    {"GithubUsername", PERSISTENT},
+    {"GsmRoaming", PERSISTENT},
+    {"HardwareSerial", PERSISTENT},
+    {"HasAcceptedTerms", PERSISTENT},
+    {"IsDriverViewEnabled", CLEAR_ON_MANAGER_START},
+    {"IMEI", PERSISTENT},
+    {"IsLdwEnabled", PERSISTENT},
+    {"IsMetric", PERSISTENT},
+    {"IsOffroad", CLEAR_ON_MANAGER_START},
+    {"IsOnroad", PERSISTENT},
+    {"IsRHD", PERSISTENT},
+    {"IsTakingSnapshot", CLEAR_ON_MANAGER_START},
+    {"IsUpdateAvailable", CLEAR_ON_MANAGER_START},
+    {"UploadRaw", PERSISTENT},
+    {"LastAthenaPingTime", CLEAR_ON_MANAGER_START},
+    {"LastGPSPosition", PERSISTENT},
+    {"LastUpdateException", PERSISTENT},
+    {"LastUpdateTime", PERSISTENT},
+    {"LiveParameters", PERSISTENT},
+    {"MapboxToken", PERSISTENT | DONT_LOG},
+    {"NavDestination", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
+    {"NavSettingTime24h", PERSISTENT},
+    {"OpenpilotEnabledToggle", PERSISTENT},
+    {"PandaFirmware", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"PandaFirmwareHex", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"PandaDongleId", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"PandaHeartbeatLost", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
+    {"Passive", PERSISTENT},
+    {"PrimeRedirected", PERSISTENT},
+    {"RecordFront", PERSISTENT},
+    {"RecordFrontLock", PERSISTENT},  // for the internal fleet
+    {"ReleaseNotes", PERSISTENT},
+    {"ShouldDoUpdate", CLEAR_ON_MANAGER_START},
+    {"SubscriberInfo", PERSISTENT},
+    {"SshEnabled", PERSISTENT},
+    {"TermsVersion", PERSISTENT},
+    {"Timezone", PERSISTENT},
+    {"TrainingVersion", PERSISTENT},
+    {"UpdateAvailable", CLEAR_ON_MANAGER_START},
+    {"UpdateFailedCount", CLEAR_ON_MANAGER_START},
+    {"Version", PERSISTENT},
+    {"VisionRadarToggle", PERSISTENT},
+    {"Offroad_ChargeDisabled", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"Offroad_ConnectivityNeeded", CLEAR_ON_MANAGER_START},
+    {"Offroad_ConnectivityNeededPrompt", CLEAR_ON_MANAGER_START},
+    {"Offroad_TemperatureTooHigh", CLEAR_ON_MANAGER_START},
+    {"Offroad_PandaFirmwareMismatch", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT},
+    {"Offroad_InvalidTime", CLEAR_ON_MANAGER_START},
+    {"Offroad_IsTakingSnapshot", CLEAR_ON_MANAGER_START},
+    {"Offroad_NeosUpdate", CLEAR_ON_MANAGER_START},
+    {"Offroad_UpdateFailed", CLEAR_ON_MANAGER_START},
+    {"Offroad_HardwareUnsupported", CLEAR_ON_MANAGER_START},
+    {"Offroad_UnofficialHardware", CLEAR_ON_MANAGER_START},
+    {"Offroad_NvmeMissing", CLEAR_ON_MANAGER_START},
+    {"ForcePowerDown", CLEAR_ON_MANAGER_START},
+    {"JoystickDebugMode", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
+};
 
-def manager_thread():
-  cloudlog.info("manager start")
-  cloudlog.info({"environ": os.environ})
+} // namespace
 
-  # save boot log
-  subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
+Params::Params() : params_path(Path::params()) {
+  static std::once_flag once_flag;
+  std::call_once(once_flag, ensure_params_path, params_path);
+}
 
-  params = Params()
+Params::Params(const std::string &path) : params_path(path) {
+  ensure_params_path(params_path);
+}
 
-  ignore = []
-  if params.get("DongleId", encoding='utf8') == UNREGISTERED_DONGLE_ID:
-    ignore += ["manage_athenad", "uploader"]
-  if os.getenv("NOBOARD") is not None:
-    ignore.append("pandad")
-  if os.getenv("BLOCK") is not None:
-    ignore += os.getenv("BLOCK").split(",")
+bool Params::checkKey(const std::string &key) {
+  return keys.find(key) != keys.end();
+}
 
-  ensure_running(managed_processes.values(), started=False, not_run=ignore)
+ParamKeyType Params::getKeyType(const std::string &key) {
+  return static_cast<ParamKeyType>(keys[key]);
+}
 
-  started_prev = False
-  sm = messaging.SubMaster(['deviceState'])
-  pm = messaging.PubMaster(['managerState'])
+int Params::put(const char* key, const char* value, size_t value_size) {
+  // Information about safely and atomically writing a file: https://lwn.net/Articles/457667/
+  // 1) Create temp file
+  // 2) Write data to temp file
+  // 3) fsync() the temp file
+  // 4) rename the temp file to the real name
+  // 5) fsync() the containing directory
+  std::string tmp_path = params_path + "/.tmp_value_XXXXXX";
+  int tmp_fd = mkstemp((char*)tmp_path.c_str());
+  if (tmp_fd < 0) return -1;
 
-  while True:
-    sm.update()
-    not_run = ignore[:]
+  int result = -1;
+  do {
+    // Write value to temp.
+    ssize_t bytes_written = HANDLE_EINTR(write(tmp_fd, value, value_size));
+    if (bytes_written < 0 || (size_t)bytes_written != value_size) {
+      result = -20;
+      break;
+    }
 
-    if sm['deviceState'].freeSpacePercent < 5:
-      not_run.append("loggerd")
+    // fsync to force persist the changes.
+    if ((result = fsync(tmp_fd)) < 0) break;
 
-    started = sm['deviceState'].started
-    driverview = params.get_bool("IsDriverViewEnabled")
-    ensure_running(managed_processes.values(), started, driverview, not_run)
+    FileLock file_lock(params_path + "/.lock", LOCK_EX);
+    std::lock_guard<FileLock> lk(file_lock);
 
-    # trigger an update after going offroad
-    if started_prev and not started and 'updated' in managed_processes:
-      os.sync()
-      managed_processes['updated'].signal(signal.SIGHUP)
+    // Move temp into place.
+    std::string path = params_path + "/d/" + std::string(key);
+    if ((result = rename(tmp_path.c_str(), path.c_str())) < 0) break;
 
-    started_prev = started
+    // fsync parent directory
+    path = params_path + "/d";
+    result = fsync_dir(path.c_str());
+  } while (false);
 
-    running_list = ["%s%s\u001b[0m" % ("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
-                    for p in managed_processes.values() if p.proc]
-    cloudlog.debug(' '.join(running_list))
+  close(tmp_fd);
+  ::unlink(tmp_path.c_str());
+  return result;
+}
 
-    # send managerState
-    msg = messaging.new_message('managerState')
-    msg.managerState.processes = [p.get_process_state_msg() for p in managed_processes.values()]
-    pm.send('managerState', msg)
+int Params::remove(const char *key) {
+  FileLock file_lock(params_path + "/.lock", LOCK_EX);
+  std::lock_guard<FileLock> lk(file_lock);
+  // Delete value.
+  std::string path = params_path + "/d/" + key;
+  int result = unlink(path.c_str());
+  if (result != 0) {
+    return result;
+  }
+  // fsync parent directory
+  path = params_path + "/d";
+  return fsync_dir(path.c_str());
+}
 
-    # TODO: let UI handle this
-    # Exit main loop when uninstall is needed
-    if params.get_bool("DoUninstall"):
-      break
+std::string Params::get(const char *key, bool block) {
+  std::string path = params_path + "/d/" + key;
+  if (!block) {
+    return util::read_file(path);
+  } else {
+    // blocking read until successful
+    params_do_exit = 0;
+    void (*prev_handler_sigint)(int) = std::signal(SIGINT, params_sig_handler);
+    void (*prev_handler_sigterm)(int) = std::signal(SIGTERM, params_sig_handler);
 
+    std::string value;
+    while (!params_do_exit) {
+      if (value = util::read_file(path); !value.empty()) {
+        break;
+      }
+      util::sleep_for(100);  // 0.1 s
+    }
 
-def main():
-  prepare_only = os.getenv("PREPAREONLY") is not None
+    std::signal(SIGINT, prev_handler_sigint);
+    std::signal(SIGTERM, prev_handler_sigterm);
+    return value;
+  }
+}
 
-  manager_init()
+std::map<std::string, std::string> Params::readAll() {
+  FileLock file_lock(params_path + "/.lock", LOCK_SH);
+  std::lock_guard<FileLock> lk(file_lock);
 
-  # Start UI early so prepare can happen in the background
-  if not prepare_only:
-    managed_processes['ui'].start()
+  std::string key_path = params_path + "/d";
+  return util::read_files_in_dir(key_path);
+}
 
-  manager_prepare()
+void Params::clearAll(ParamKeyType key_type) {
+  FileLock file_lock(params_path + "/.lock", LOCK_EX);
+  std::lock_guard<FileLock> lk(file_lock);
 
-  if prepare_only:
-    return
+  std::string path;
+  for (auto &[key, type] : keys) {
+    if (type & key_type) {
+      path = params_path + "/d/" + key;
+      unlink(path.c_str());
+    }
+  }
 
-  # SystemExit on sigterm
-  signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(1))
-
-  try:
-    manager_thread()
-  except Exception:
-    traceback.print_exc()
-    crash.capture_exception()
-  finally:
-    manager_cleanup()
-
-  if Params().get_bool("DoUninstall"):
-    cloudlog.warning("uninstalling")
-    HARDWARE.uninstall()
-
-
-if __name__ == "__main__":
-  unblock_stdout()
-
-  try:
-    main()
-  except Exception:
-    add_file_handler(cloudlog)
-    cloudlog.exception("Manager failed to start")
-
-    # Show last 3 lines of traceback
-    error = traceback.format_exc(-3)
-    error = "Manager failed to start\n\n" + error
-    with TextWindow(error) as t:
-      t.wait_for_exit()
-
-    raise
-
-  # manual exit because we are forked
-  sys.exit(0)
+  // fsync parent directory
+  path = params_path + "/d";
+  fsync_dir(path.c_str());
+}

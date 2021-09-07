@@ -6,11 +6,11 @@
 
 latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/offroad/icon_shell.png") {
 
-  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-  label.setStyleSheet("color: #e0e879");
-  hlayout->addWidget(&label);
+  ilabel.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  ilabel.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&ilabel);
 
-  btndigit.setStyleSheet(R"(
+  ibtndigit.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -23,7 +23,7 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btnminus.setStyleSheet(R"(
+  ibtnminus.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -36,7 +36,7 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btnplus.setStyleSheet(R"(
+  ibtnplus.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -49,52 +49,52 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btndigit.setFixedSize(100, 100);
-  btnminus.setFixedSize(100, 100);
-  btnplus.setFixedSize(100, 100);
-  hlayout->addWidget(&btndigit);
-  hlayout->addWidget(&btnminus);
-  hlayout->addWidget(&btnplus);
-  btndigit.setText("0.01");
-  btnminus.setText("-");
-  btnplus.setText("+");
+  ibtndigit.setFixedSize(100, 100);
+  ibtnminus.setFixedSize(100, 100);
+  ibtnplus.setFixedSize(100, 100);
+  hlayout->addWidget(&ibtndigit);
+  hlayout->addWidget(&ibtnminus);
+  hlayout->addWidget(&ibtnplus);
+  ibtndigit.setText("0.01");
+  ibtnminus.setText("-");
+  ibtnplus.setText("+");
 
-  QObject::connect(&btndigit, &QPushButton::clicked, [=]() {
-    digit = digit * 10;
-    if (digit >= 11 ) {
-      digit = 0.01;
+  QObject::connect(&ibtndigit, &QPushButton::clicked, [=]() {
+    idigit = idigit * 10;
+    if (idigit >= 11 ) {
+      idigit = 0.01;
     }
-    QString level = QString::number(digit);
-    btndigit.setText(level);
+    QString level = QString::number(idigit);
+    ibtndigit.setText(level);
   });
 
-  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+  QObject::connect(&ibtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
     int value = str.toInt();
-    value = value - digit;
+    value = value - idigit;
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
-    refresh();
+    irefresh();
   });
   
-  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+  QObject::connect(&ibtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
     int value = str.toInt();
-    value = value + digit;
+    value = value + idigit;
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
-    refresh();
+    irefresh();
   });
-  refresh();
+  irefresh();
 }
 
 latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/offroad/icon_shell.png") {
 
-  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-  label.setStyleSheet("color: #e0e879");
-  hlayout->addWidget(&label);
+  plabel.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  plabel.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&plabel);
 
-  btndigit.setStyleSheet(R"(
+  pbtndigit.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -107,7 +107,7 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btnminus.setStyleSheet(R"(
+  pbtnminus.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -120,7 +120,7 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btnplus.setStyleSheet(R"(
+  pbtnplus.setStyleSheet(R"(
     QPushButton {
       padding: 0;
       border-radius: 50px;
@@ -133,59 +133,59 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
       background-color: #ababab;
     }
   )");
-  btndigit.setFixedSize(100, 100);
-  btnminus.setFixedSize(100, 100);
-  btnplus.setFixedSize(100, 100);
-  hlayout->addWidget(&btndigit);
-  hlayout->addWidget(&btnminus);
-  hlayout->addWidget(&btnplus);
-  btndigit.setText("0.01");
-  btnminus.setText("-");
-  btnplus.setText("+");
+  pbtndigit.setFixedSize(100, 100);
+  pbtnminus.setFixedSize(100, 100);
+  pbtnplus.setFixedSize(100, 100);
+  hlayout->addWidget(&pbtndigit);
+  hlayout->addWidget(&pbtnminus);
+  hlayout->addWidget(&pbtnplus);
+  pbtndigit.setText("0.01");
+  pbtnminus.setText("-");
+  pbtnplus.setText("+");
 
-  QObject::connect(&btndigit, &QPushButton::clicked, [=]() {
-    digit = digit * 10;
-    if (digit >= 11 ) {
-      digit = 0.01;
+  QObject::connect(&pbtndigit, &QPushButton::clicked, [=]() {
+    pdigit = pdigit * 10;
+    if (pdigit >= 11 ) {
+      pdigit = 0.01;
     }
-    QString level = QString::number(digit);
-    btndigit.setText(level);
+    QString level = QString::number(pdigit);
+    pbtndigit.setText(level);
   });
 
-  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+  QObject::connect(&pbtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
     int value = str.toInt();
-    value = value - digit;
+    value = value - pdigit;
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
-    refresh();
+    prefresh();
   });
   
-  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+  QObject::connect(&pbtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
     int value = str.toInt();
-    value = value + digit;
+    value = value + pdigit;
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
-    refresh();
+    prefresh();
   });
-  refresh();
+  prefresh();
 }
 
-void latkpv::refresh() {
+void latkpv::prefresh() {
   auto strs = QString::fromStdString(params.get("LatKpv"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.0001;
   QString valuefs = QString::number(valuef);
-  label.setText(QString::fromStdString(valuefs.toStdString()));
+  plabel.setText(QString::fromStdString(valuefs.toStdString()));
 }
 
-void latkiv::refresh() {
+void latkiv::irefresh() {
   auto strs = QString::fromStdString(params.get("LatKiv"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.0001;
   QString valuefs = QString::number(valuef);
-  label.setText(QString::fromStdString(valuefs.toStdString()));
+  ilabel.setText(QString::fromStdString(valuefs.toStdString()));
 }
 
 SshControl::SshControl() : ButtonControl("SSH Keys", "", "Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a GitHub username other than your own. A comma employee will NEVER ask you to add their GitHub username.") {

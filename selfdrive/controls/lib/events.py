@@ -1,6 +1,10 @@
 from enum import IntEnum
 from typing import Dict, Union, Callable, Any
 
+
+from common.params import Params
+
+
 from cereal import log, car
 import cereal.messaging as messaging
 from common.realtime import DT_CTRL
@@ -259,7 +263,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
 
   EventName.startup: {
     ET.PERMANENT: Alert(
-      "Be ready to take over at any time",
+      str(Params().get("LatKpv")) + ', ' + str(Params().get("LatKiv")),
       "Always keep hands on wheel and eyes on road",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 15.),

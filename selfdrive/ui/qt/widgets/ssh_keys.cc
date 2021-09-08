@@ -70,7 +70,7 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
 
   QObject::connect(&ibtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
-    float value = str.toFloat();
+    int value = str.toFloat();
     value = value - idigit;
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
@@ -79,7 +79,7 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
   
   QObject::connect(&ibtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
-    float value = str.toFloat();
+    int value = str.toFloat();
     value = value + idigit;
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
@@ -154,7 +154,7 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
 
   QObject::connect(&pbtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
-    float value = str.toFloat();
+    int value = str.toFloat();
     value = value - pdigit;
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
@@ -163,7 +163,7 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
   
   QObject::connect(&pbtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
-    float value = str.toFloat();
+    int value = str.toFloat();
     value = value + pdigit;
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
@@ -174,7 +174,7 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
 
 void latkpv::prefresh() {
   auto strs = QString::fromStdString(params.get("LatKpv"));
-  float valuei = strs.toFloat();
+  int valuei = strs.toFloat();
   float valuef = valuei;
   QString valuefs = QString::number(valuef);
   plabel.setText(QString::fromStdString(valuefs.toStdString()));
@@ -182,7 +182,7 @@ void latkpv::prefresh() {
 
 void latkiv::irefresh() {
   auto strs = QString::fromStdString(params.get("LatKiv"));
-  float valuei = strs.toFloat();
+  int valuei = strs.toFloat();
   float valuef = valuei;
   QString valuefs = QString::number(valuef);
   ilabel.setText(QString::fromStdString(valuefs.toStdString()));

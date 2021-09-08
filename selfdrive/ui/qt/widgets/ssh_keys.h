@@ -10,14 +10,13 @@ class latkpv : public AbstractControl {
 
 public:
   latkpv();
-
 private:
   QPushButton pbtndigit;
   QPushButton pbtnminus;
   QPushButton pbtnplus;
   QLabel plabel;
   Params params;
-  float pdigit = 0.01;
+  int pdigit = 1;
   
   void prefresh();
 };
@@ -27,14 +26,13 @@ class latkiv : public AbstractControl {
 
 public:
   latkiv();
-
 private:
   QPushButton ibtndigit;
   QPushButton ibtnminus;
   QPushButton ibtnplus;
   QLabel ilabel;
   Params params;
-  float idigit = 0.01;
+  int idigit = 1;
   
   void irefresh();
 };

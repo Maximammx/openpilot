@@ -1,214 +1,250 @@
-#!/usr/bin/env python3
-import datetime
-import os
-import signal
-import subprocess
-import sys
-import traceback
+#include "selfdrive/ui/qt/widgets/ssh_keys.h"
 
-import cereal.messaging as messaging
-import selfdrive.crash as crash
-from common.basedir import BASEDIR
-from common.params import Params, ParamKeyType
-from common.text_window import TextWindow
-from selfdrive.boardd.set_time import set_time
-from selfdrive.hardware import HARDWARE, PC
-from selfdrive.manager.helpers import unblock_stdout
-from selfdrive.manager.process import ensure_running
-from selfdrive.manager.process_config import managed_processes
-from selfdrive.athena.registration import register, UNREGISTERED_DONGLE_ID
-from selfdrive.swaglog import cloudlog, add_file_handler
-from selfdrive.version import dirty, get_git_commit, version, origin, branch, commit, \
-                              terms_version, training_version, comma_remote, \
-                              get_git_branch, get_git_remote
+#include "selfdrive/common/params.h"
+#include "selfdrive/ui/qt/api.h"
+#include "selfdrive/ui/qt/widgets/input.h"
 
-sys.path.append(os.path.join(BASEDIR, "pyextra"))
+latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/offroad/icon_shell.png") {
 
-def manager_init():
+  ilabel.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  ilabel.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&ilabel);
 
-  # update system time from panda
-  set_time(cloudlog)
+  ibtndigit.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  ibtnminus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  ibtnplus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  ibtndigit.setFixedSize(100, 100);
+  ibtnminus.setFixedSize(100, 100);
+  ibtnplus.setFixedSize(100, 100);
+  hlayout->addWidget(&ibtndigit);
+  hlayout->addWidget(&ibtnminus);
+  hlayout->addWidget(&ibtnplus);
+  ibtndigit.setText("1");
+  ibtnminus.setText("-");
+  ibtnplus.setText("+");
 
-  params = Params()
-  params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
+  QObject::connect(&ibtndigit, &QPushButton::clicked, [=]() {
+    idigit = idigit * 10;
+    if (idigit >= 1001 ) {
+      idigit = 1;
+    }
+    QString level = QString::number(idigit);
+    ibtndigit.setText(level);
+  });
 
-  default_params = [
-    ("CompletedTrainingVersion", "0"),
-    ("HasAcceptedTerms", "0"),
-    ("OpenpilotEnabledToggle", "1"),
-    ("LatKpv", "0.28"),
-    ("LatKiv", "0.08")
-  ]
-  if not PC:
-    default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
+  QObject::connect(&ibtnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKiv"));
+    int value = str.toFloat();
+    value = value - (idigit / 100);
+    QString values = QString::number(value);
+    params.put("LatKiv", values.toStdString());
+    irefresh();
+  });
+  
+  QObject::connect(&ibtnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKiv"));
+    int value = str.toFloat();
+    value = value + (idigit / 100);
+    QString values = QString::number(value);
+    params.put("LatKiv", values.toStdString());
+    irefresh();
+  });
+  irefresh();
+}
 
-  if params.get_bool("RecordFrontLock"):
-    params.put_bool("RecordFront", True)
+latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/offroad/icon_shell.png") {
 
-  # set unset params
-  for k, v in default_params:
-    if params.get(k) is None:
-      params.put(k, v)
+  plabel.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  plabel.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&plabel);
 
-  # is this dashcam?
-  if os.getenv("PASSIVE") is not None:
-    params.put_bool("Passive", bool(int(os.getenv("PASSIVE"))))
+  pbtndigit.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  pbtnminus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  pbtnplus.setStyleSheet(R"(
+    QPushButton {
+      padding: 0;
+      border-radius: 50px;
+      font-size: 35px;
+      font-weight: 500;
+      color: #E4E4E4;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #ababab;
+    }
+  )");
+  pbtndigit.setFixedSize(100, 100);
+  pbtnminus.setFixedSize(100, 100);
+  pbtnplus.setFixedSize(100, 100);
+  hlayout->addWidget(&pbtndigit);
+  hlayout->addWidget(&pbtnminus);
+  hlayout->addWidget(&pbtnplus);
+  pbtndigit.setText("1");
+  pbtnminus.setText("-");
+  pbtnplus.setText("+");
 
-  if params.get("Passive") is None:
-    raise Exception("Passive must be set to continue")
+  QObject::connect(&pbtndigit, &QPushButton::clicked, [=]() {
+    pdigit = pdigit * 10;
+    if (pdigit >= 1001 ) {
+      pdigit = 1;
+    }
+    QString level = QString::number(pdigit);
+    pbtndigit.setText(level);
+  });
 
-  # Create folders needed for msgq
-  try:
-    os.mkdir("/dev/shm")
-  except FileExistsError:
-    pass
-  except PermissionError:
-    print("WARNING: failed to make /dev/shm")
+  QObject::connect(&pbtnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKpv"));
+    int value = str.toFloat();
+    value = value - (pdigit / 100);
+    QString values = QString::number(value);
+    params.put("LatKpv", values.toStdString());
+    prefresh();
+  });
+  
+  QObject::connect(&pbtnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LatKpv"));
+    int value = str.toFloat();
+    value = value + (pdigit / 100);
+    QString values = QString::number(value);
+    params.put("LatKpv", values.toStdString());
+    prefresh();
+  });
+  prefresh();
+}
 
-  # set version params
-  params.put("Version", version)
-  params.put("TermsVersion", terms_version)
-  params.put("TrainingVersion", training_version)
-  params.put("GitCommit", get_git_commit(default=""))
-  params.put("GitBranch", get_git_branch(default=""))
-  params.put("GitRemote", get_git_remote(default=""))
+void latkpv::prefresh() {
+  auto strs = QString::fromStdString(params.get("LatKpv"));
+  int ivalue = strs.toFloat();
+  float valuef = ivalue * 100;
+  QString valuefs = QString::number(valuef);
+  plabel.setText(QString::fromStdString(valuefs.toStdString()));
+}
 
-  # set dongle id
-  reg_res = register(show_spinner=True)
-  if reg_res:
-    dongle_id = reg_res
-  else:
-    serial = params.get("HardwareSerial")
-    raise Exception(f"Registration failed for device {serial}")
-  os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
+void latkiv::irefresh() {
+  auto strs = QString::fromStdString(params.get("LatKiv"));
+  int ivalue = strs.toFloat();
+  float valuef = ivalue * 100;
+  QString valuefs = QString::number(valuef);
+  ilabel.setText(QString::fromStdString(valuefs.toStdString()));
+}
 
-  if not dirty:
-    os.environ['CLEAN'] = '1'
+SshControl::SshControl() : ButtonControl("SSH Keys", "", "Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a GitHub username other than your own. A comma employee will NEVER ask you to add their GitHub username.") {
+  username_label.setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  username_label.setStyleSheet("color: #aaaaaa");
+  hlayout->insertWidget(1, &username_label);
 
-  cloudlog.bind_global(dongle_id=dongle_id, version=version, dirty=dirty,
-                       device=HARDWARE.get_device_type())
+  QObject::connect(this, &ButtonControl::clicked, [=]() {
+    if (text() == "ADD") {
+      QString username = InputDialog::getText("Enter your GitHub username", this);
+      if (username.length() > 0) {
+        setText("LOADING");
+        setEnabled(false);
+        getUserKeys(username);
+      }
+    } else {
+      params.remove("GithubUsername");
+      params.remove("GithubSshKeys");
+      refresh();
+    }
+  });
 
-  if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
-    crash.init()
-  crash.bind_user(id=dongle_id)
-  crash.bind_extra(dirty=dirty, origin=origin, branch=branch, commit=commit,
-                   device=HARDWARE.get_device_type())
+  refresh();
+}
 
+void SshControl::refresh() {
+  QString param = QString::fromStdString(params.get("GithubSshKeys"));
+  if (param.length()) {
+    username_label.setText(QString::fromStdString(params.get("GithubUsername")));
+    setText("REMOVE");
+  } else {
+    username_label.setText("");
+    setText("ADD");
+  }
+  setEnabled(true);
+}
 
-def manager_prepare():
-  for p in managed_processes.values():
-    p.prepare()
+void SshControl::getUserKeys(const QString &username) {
+  HttpRequest *request = new HttpRequest(this, false);
+  QObject::connect(request, &HttpRequest::receivedResponse, [=](const QString &resp) {
+    if (!resp.isEmpty()) {
+      params.put("GithubUsername", username.toStdString());
+      params.put("GithubSshKeys", resp.toStdString());
+    } else {
+      ConfirmationDialog::alert("Username '" + username + "' has no keys on GitHub", this);
+    }
+    refresh();
+    request->deleteLater();
+  });
+  QObject::connect(request, &HttpRequest::failedResponse, [=] {
+    ConfirmationDialog::alert("Username '" + username + "' doesn't exist on GitHub", this);
+    refresh();
+    request->deleteLater();
+  });
+  QObject::connect(request, &HttpRequest::timeoutResponse, [=] {
+    ConfirmationDialog::alert("Request timed out", this);
+    refresh();
+    request->deleteLater();
+  });
 
-
-def manager_cleanup():
-  for p in managed_processes.values():
-    p.stop()
-
-  cloudlog.info("everything is dead")
-
-
-def manager_thread():
-  cloudlog.info("manager start")
-  cloudlog.info({"environ": os.environ})
-
-  # save boot log
-  subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
-
-  params = Params()
-
-  ignore = []
-  if params.get("DongleId", encoding='utf8') == UNREGISTERED_DONGLE_ID:
-    ignore += ["manage_athenad", "uploader"]
-  if os.getenv("NOBOARD") is not None:
-    ignore.append("pandad")
-  if os.getenv("BLOCK") is not None:
-    ignore += os.getenv("BLOCK").split(",")
-
-  ensure_running(managed_processes.values(), started=False, not_run=ignore)
-
-  started_prev = False
-  sm = messaging.SubMaster(['deviceState'])
-  pm = messaging.PubMaster(['managerState'])
-
-  while True:
-    sm.update()
-    not_run = ignore[:]
-
-    if sm['deviceState'].freeSpacePercent < 5:
-      not_run.append("loggerd")
-
-    started = sm['deviceState'].started
-    driverview = params.get_bool("IsDriverViewEnabled")
-    ensure_running(managed_processes.values(), started, driverview, not_run)
-
-    # trigger an update after going offroad
-    if started_prev and not started and 'updated' in managed_processes:
-      os.sync()
-      managed_processes['updated'].signal(signal.SIGHUP)
-
-    started_prev = started
-
-    running_list = ["%s%s\u001b[0m" % ("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
-                    for p in managed_processes.values() if p.proc]
-    cloudlog.debug(' '.join(running_list))
-
-    # send managerState
-    msg = messaging.new_message('managerState')
-    msg.managerState.processes = [p.get_process_state_msg() for p in managed_processes.values()]
-    pm.send('managerState', msg)
-
-    # TODO: let UI handle this
-    # Exit main loop when uninstall is needed
-    if params.get_bool("DoUninstall"):
-      break
-
-
-def main():
-  prepare_only = os.getenv("PREPAREONLY") is not None
-
-  manager_init()
-
-  # Start UI early so prepare can happen in the background
-  if not prepare_only:
-    managed_processes['ui'].start()
-
-  manager_prepare()
-
-  if prepare_only:
-    return
-
-  # SystemExit on sigterm
-  signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(1))
-
-  try:
-    manager_thread()
-  except Exception:
-    traceback.print_exc()
-    crash.capture_exception()
-  finally:
-    manager_cleanup()
-
-  if Params().get_bool("DoUninstall"):
-    cloudlog.warning("uninstalling")
-    HARDWARE.uninstall()
-
-
-if __name__ == "__main__":
-  unblock_stdout()
-
-  try:
-    main()
-  except Exception:
-    add_file_handler(cloudlog)
-    cloudlog.exception("Manager failed to start")
-
-    # Show last 3 lines of traceback
-    error = traceback.format_exc(-3)
-    error = "Manager failed to start\n\n" + error
-    with TextWindow(error) as t:
-      t.wait_for_exit()
-
-    raise
-
-  # manual exit because we are forked
-  sys.exit(0)
+  request->sendRequest("https://github.com/" + username + ".keys");
+}

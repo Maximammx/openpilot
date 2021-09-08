@@ -55,14 +55,14 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
   hlayout->addWidget(&ibtndigit);
   hlayout->addWidget(&ibtnminus);
   hlayout->addWidget(&ibtnplus);
-  ibtndigit.setText("0.01");
+  ibtndigit.setText("1");
   ibtnminus.setText("-");
   ibtnplus.setText("+");
 
   QObject::connect(&ibtndigit, &QPushButton::clicked, [=]() {
     idigit = idigit * 10;
-    if (idigit >= 11 ) {
-      idigit = 0.01;
+    if (idigit >= 1001 ) {
+      idigit = 1;
     }
     QString level = QString::number(idigit);
     ibtndigit.setText(level);
@@ -70,8 +70,8 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
 
   QObject::connect(&ibtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
-    int value = str.toFloat();
-    value = value - idigit;
+    float value = str.toFloat();
+    value = value - (idigit / 100);
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
     irefresh();
@@ -79,8 +79,8 @@ latkiv::latkiv() : AbstractControl("Lat Kiv", "Description here", "../assets/off
   
   QObject::connect(&ibtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKiv"));
-    int value = str.toFloat();
-    value = value + idigit;
+    float value = str.toFloat();
+    value = value + (idigit / 100);
     QString values = QString::number(value);
     params.put("LatKiv", values.toStdString());
     irefresh();
@@ -139,14 +139,14 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
   hlayout->addWidget(&pbtndigit);
   hlayout->addWidget(&pbtnminus);
   hlayout->addWidget(&pbtnplus);
-  pbtndigit.setText("0.01");
+  pbtndigit.setText("1");
   pbtnminus.setText("-");
   pbtnplus.setText("+");
 
   QObject::connect(&pbtndigit, &QPushButton::clicked, [=]() {
     pdigit = pdigit * 10;
-    if (pdigit >= 11 ) {
-      pdigit = 0.01;
+    if (pdigit >= 1001 ) {
+      pdigit = 1;
     }
     QString level = QString::number(pdigit);
     pbtndigit.setText(level);
@@ -154,8 +154,8 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
 
   QObject::connect(&pbtnminus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
-    int value = str.toFloat();
-    value = value - pdigit;
+    float value = str.toFloat();
+    value = value - (pdigit / 100);
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
     prefresh();
@@ -163,8 +163,8 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
   
   QObject::connect(&pbtnplus, &QPushButton::clicked, [=]() {
     auto str = QString::fromStdString(params.get("LatKpv"));
-    int value = str.toFloat();
-    value = value + pdigit;
+    float value = str.toFloat();
+    value = value + (pdigit / 100);
     QString values = QString::number(value);
     params.put("LatKpv", values.toStdString());
     prefresh();
@@ -174,16 +174,16 @@ latkpv::latkpv() : AbstractControl("Lat Kpv", "Description here", "../assets/off
 
 void latkpv::prefresh() {
   auto strs = QString::fromStdString(params.get("LatKpv"));
-  int valuei = strs.toFloat();
-  float valuef = valuei * 100;
+  int ivalue = strs.toFloat();
+  float valuef = ivalue * 100;
   QString valuefs = QString::number(valuef);
   plabel.setText(QString::fromStdString(valuefs.toStdString()));
 }
 
 void latkiv::irefresh() {
   auto strs = QString::fromStdString(params.get("LatKiv"));
-  int valuei = strs.toFloat();
-  float valuef = valuei * 100;
+  int ivalue = strs.toFloat();
+  float valuef = ivalue * 100;
   QString valuefs = QString::number(valuef);
   ilabel.setText(QString::fromStdString(valuefs.toStdString()));
 }

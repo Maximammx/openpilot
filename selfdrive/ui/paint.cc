@@ -202,13 +202,15 @@ static void ui_draw_vision_maxspeed(UIState *s) {
 static void ui_draw_vision_lat(UIState *s) {
   Params params;
 
+  /*
   const Rect rect = {(bdr_s * 2) + 300, int(bdr_s * 1.5), 184, 202};
   ui_fill_rect(s->vg, rect, COLOR_BLACK_ALPHA(100), 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
+  */
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
-  ui_draw_text(s, rect.centerX() + 300, 118, params.get("LatKpv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold"); //118
-  ui_draw_text(s, rect.centerX() + 300, 212, params.get("LatKiv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold"); //212
+  ui_draw_text(s, (bdr_s * 2) + 300, 118, params.get("LatKpv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold"); //118
+  ui_draw_text(s, (bdr_s * 2) + 300, 212, params.get("LatKiv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold"); //212
 }
 
 static void ui_draw_vision_speed(UIState *s) {

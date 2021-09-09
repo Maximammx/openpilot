@@ -207,7 +207,6 @@ static void ui_draw_vision_lat(UIState *s) {
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
-  ui_draw_text(s, rect.centerX(), 212, "Test", 48 * 2.5, COLOR_WHITE, "sans-bold");
   ui_draw_text(s, rect.centerX(), 118, params.get("LatKpv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold");
   ui_draw_text(s, rect.centerX(), 212, params.get("LatKiv").c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold");
 }

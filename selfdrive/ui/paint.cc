@@ -22,7 +22,6 @@
 #include "selfdrive/hardware/hw.h"
 
 #include "selfdrive/ui/ui.h"
-#include "selfdrive/common/params.h"
 
 static void ui_draw_text(const UIState *s, float x, float y, const char *string, float size, NVGcolor color, const char *font_name) {
   nvgFontFace(s->vg, font_name);
@@ -201,13 +200,16 @@ static void ui_draw_vision_maxspeed(UIState *s) {
 }
 
 static void ui_draw_vision_lat(UIState *s) {
+  Params params
+
   const Rect rect = {bdr_s * 2, int(bdr_s * 1.5), 202, 220};
   ui_fill_rect(s->vg, rect, COLOR_BLACK_ALPHA(100), 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
-  ui_draw_text(s, rect.centerX(), 118, Params().get("LatKiv"), 48 * 2.5, COLOR_WHITE, "sans-bold");
-  ui_draw_text(s, rect.centerX(), 212, Params().get("LatKpv"), 48 * 2.5, COLOR_WHITE, "sans-bold");
+  ui_draw_text(s, rect.centerX(), 212, "Test", 48 * 2.5, COLOR_WHITE, "sans-bold");
+  ui_draw_text(s, rect.centerX(), 118, params.get("LatKpv"), 48 * 2.5, COLOR_WHITE, "sans-bold");
+  ui_draw_text(s, rect.centerX(), 212, params.get("LatKiv"), 48 * 2.5, COLOR_WHITE, "sans-bold");
 }
 
 static void ui_draw_vision_speed(UIState *s) {

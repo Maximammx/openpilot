@@ -264,7 +264,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   EventName.startup: {
     ET.PERMANENT: Alert(
       str(Params().get("LatKpv")) + ', ' + str(Params().get("LatKiv")),
-      "Always keep hands on wheel and eyes on road",
+      "CC special",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 15.),
   },
@@ -272,7 +272,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   EventName.startupMaster: {
     ET.PERMANENT: Alert(
       str(Params().get("LatKpv")) + ', ' + str(Params().get("LatKiv")),
-      "Always keep hands on wheel and eyes on road",
+      "CC special",
       AlertStatus.userPrompt, AlertSize.mid,
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 15.),
   },

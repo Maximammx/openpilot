@@ -200,7 +200,7 @@ static void ui_draw_vision_maxspeed(UIState *s) {
 }
 
 static void ui_draw_vision_lat(UIState *s) {
-  Params params
+  Params params;
 
   const Rect rect = {bdr_s * 2, int(bdr_s * 1.5), 202, 220};
   ui_fill_rect(s->vg, rect, COLOR_BLACK_ALPHA(100), 30.);

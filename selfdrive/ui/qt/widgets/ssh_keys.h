@@ -16,7 +16,7 @@ private:
   QPushButton pbtnplus;
   QLabel plabel;
   Params params;
-  int pdigit = 1;
+  float pdigit = 1;
   
   void prefresh();
 };
@@ -32,7 +32,7 @@ private:
   QPushButton ibtnplus;
   QLabel ilabel;
   Params params;
-  int idigit = 1;
+  float idigit = 1;
   
   void irefresh();
 };

@@ -324,10 +324,20 @@ def bridge(q):
     if not q.empty():
       message = q.get()
       m = message.split('_')
+
+      #my stuff
+
+      vel = vehicle.get_velocity()
+      speed = math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)
+      below = 5
+      #line 340 included
+
+      #end of my stuff
+
       if m[0] == "steer":
         steer_manual = float(m[1])
         is_openpilot_engaged = False
-      elif m[0] == "throttle":
+      elif m[0] == "throttle" and speed * 1609.344 < below:
         throttle_manual = float(m[1])
         is_openpilot_engaged = False
       elif m[0] == "brake":

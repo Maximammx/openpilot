@@ -337,9 +337,6 @@ def bridge(q):
       if m[0] == "steer":
         steer_manual = float(m[1])
         is_openpilot_engaged = False
-      elif m[0] == "throttle" and speed * 1609.344 > below:
-        throttle_manual = float(m[1])
-        is_openpilot_engaged = False
       elif m[0] == "brake":
         brake_manual = float(m[1])
         is_openpilot_engaged = False

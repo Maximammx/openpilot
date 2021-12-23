@@ -325,15 +325,6 @@ def bridge(q):
       message = q.get()
       m = message.split('_')
 
-      #my stuff
-
-      vel = vehicle.get_velocity()
-      speed = math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)
-      below = 5
-      #line 340 included
-
-      #end of my stuff
-
       if m[0] == "steer":
         steer_manual = float(m[1])
         is_openpilot_engaged = False

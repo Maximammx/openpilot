@@ -324,12 +324,12 @@ def bridge(q):
     if not q.empty():
       message = q.get()
       m = message.split('_')
-
       if m[0] == "steer":
         steer_manual = float(m[1])
         is_openpilot_engaged = False
       elif m[0] == "throttle":
         throttle_manual = float(m[1])
+        is_openpilot_engaged = True
       elif m[0] == "brake":
         brake_manual = float(m[1])
         is_openpilot_engaged = False

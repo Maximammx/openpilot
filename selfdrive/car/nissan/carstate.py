@@ -28,7 +28,7 @@ class CarState(CarStateBase):
     elif self.CP.carFingerprint in [CAR.LEAF, CAR.LEAF_IC]:
       ret.gas = cp.vl["CRUISE_THROTTLE"]["GAS_PEDAL"]
 
-    ret.gasPressed = bool(ret.gas > 3)
+    #ret.gasPressed = bool(ret.gas > 3)
 
     if self.CP.carFingerprint in [CAR.ROGUE, CAR.XTRAIL, CAR.ALTIMA]:
       ret.brakePressed = bool(cp.vl["DOORS_LIGHTS"]["USER_BRAKE_PRESSED"])

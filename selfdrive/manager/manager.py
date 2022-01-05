@@ -36,8 +36,8 @@ def manager_init():
     ("CompletedTrainingVersion", "0"),
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
-    ("LatKpv", "0.28"),
-    ("LatKiv", "0.08")
+    ("LatKpv", "0.06"),
+    ("LatKiv", "0.02")
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
